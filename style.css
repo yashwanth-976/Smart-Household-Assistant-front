@@ -1,0 +1,925 @@
+:root {
+  /* Color Palette */
+  --primary: #4F46E5;
+  /* Indigo 600 */
+  --primary-hover: #4338ca;
+  --secondary: #10B981;
+  /* Emerald 500 */
+  --danger: #EF4444;
+  /* Red 500 */
+  --warning: #F59E0B;
+  /* Amber 500 */
+  --background: #F3F4F6;
+  /* Gray 100 */
+  --surface: #FFFFFF;
+  --text-main: #1F2937;
+  /* Gray 800 */
+  --text-muted: #6B7280;
+  /* Gray 500 */
+  --border: #E5E7EB;
+  /* Gray 200 */
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+
+  /* Spacing & Radius */
+  --radius-md: 0.5rem;
+  /* 8px */
+  --radius-lg: 1rem;
+  /* 16px */
+  --radius-xl: 1.5rem;
+  /* 24px */
+}
+
+/* Reset & Base */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  background-color: var(--background);
+  color: var(--text-main);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  overscroll-behavior-y: none;
+  /* Prevent pull-to-refresh/close on mobile */
+}
+
+/* Swipe Actions */
+.inventory-item {
+  position: relative;
+  overflow: hidden;
+  /* Ensure content doesn't spill */
+  transition: transform 0.2s ease-out;
+  /* Smooth swipe return */
+  touch-action: pan-y;
+  /* Allow vertical scroll, handle horizontal in JS */
+  user-select: none;
+}
+
+.inventory-item.swiped-left {
+  transform: translateX(-100px);
+  /* Move left to reveal delete (visual mostly) */
+  opacity: 0.5;
+}
+
+/* Delete Background (Revealed on swipe) - Optional visual cue could be added behind */
+
+/* Layout Containers */
+.container {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 1rem;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.center-content {
+  justify-content: center;
+  align-items: center;
+}
+
+/* Typography */
+h1,
+h2,
+h3 {
+  color: var(--text-main);
+  font-weight: 700;
+}
+
+h1.app-title {
+  font-size: 1.75rem;
+  text-align: center;
+  margin-bottom: 0.5rem;
+  background: linear-gradient(135deg, var(--primary), var(--secondary));
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.text-muted {
+  color: var(--text-muted);
+  font-size: 0.875rem;
+}
+
+.text-center {
+  text-align: center;
+}
+
+/* Cards */
+.card {
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  padding: 1.5rem;
+  box-shadow: var(--shadow-md);
+  margin-bottom: 0.5rem;
+  /* Reduced from 1rem to tighten gap */
+  width: 100%;
+}
+
+/* Forms & Inputs */
+.form-group {
+  margin-bottom: 1rem;
+}
+
+label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+  color: var(--text-main);
+}
+
+input,
+select {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  font-size: 1rem;
+  background: #F9FAFB;
+  transition: all 0.2s;
+}
+
+input:focus,
+select:focus {
+  outline: none;
+  border-color: var(--primary);
+  background: var(--surface);
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+}
+
+.input-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+/* Buttons */
+.btn {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  padding: 0.875rem;
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.1s, box-shadow 0.2s;
+}
+
+.btn:active {
+  transform: scale(0.98);
+}
+
+.btn-primary {
+  background: var(--primary);
+  color: white;
+  box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.3);
+}
+
+.btn-primary:hover {
+  background: var(--primary-hover);
+}
+
+.btn-secondary {
+  background: white;
+  color: var(--text-main);
+  border: 1px solid var(--border);
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--primary);
+  padding: 0.5rem;
+  font-size: 0.875rem;
+  border: none;
+  cursor: pointer;
+}
+
+.btn-icon {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #F3F4F6;
+  color: var(--text-muted);
+  border: none;
+  cursor: pointer;
+}
+
+/* Language Selector */
+.lang-selector {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+}
+
+.lang-selector select {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.875rem;
+  border-radius: var(--radius-md);
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+/* Authentication Page Specifics */
+.auth-container {
+  max-width: 400px;
+  width: 90%;
+  margin: auto;
+}
+
+.divider {
+  display: flex;
+  align-items: center;
+  text-align: center;
+  margin: 1.5rem 0;
+  color: var(--text-muted);
+  font-size: 0.875rem;
+}
+
+.divider::before,
+.divider::after {
+  content: '';
+  flex: 1;
+  border-bottom: 1px solid var(--border);
+}
+
+.divider::not(:empty)::before {
+  margin-right: .5em;
+}
+
+.divider::not(:empty)::after {
+  margin-left: .5em;
+}
+
+/* Dashboard Headers */
+.dashboard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+/* Inventory List */
+/* Inventory List */
+.inventory-section {
+  width: 100%;
+  max-width: 600px;
+  /* Match container/card width */
+  margin: 0 auto;
+  /* Center the section */
+}
+
+.inventory-section h3 {
+  margin-bottom: 0.5rem;
+  /* Reduced from 1rem */
+  margin-top: 0;
+  /* Ensure no extra top margin */
+}
+
+.inventory-item {
+  background: var(--surface);
+  border-radius: var(--radius-md);
+  padding: 1rem;
+  margin-bottom: 0.75rem;
+  /* Compact spacing */
+  box-shadow: var(--shadow-sm);
+  border-left: 5px solid var(--border);
+  transition: all 0.3s ease;
+  cursor: pointer;
+  overflow: hidden;
+  position: relative;
+  width: 100%;
+  /* Fill the 600px container */
+  box-sizing: border-box;
+}
+
+.inventory-item:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+/* Border Logic */
+.inventory-item.status-good {
+  border-left-color: var(--secondary);
+}
+
+.inventory-item.status-warning {
+  border-left-color: var(--warning);
+}
+
+.inventory-item.status-expired {
+  border-left-color: var(--danger);
+}
+
+/* Color-coded Urgency (New) */
+/* Color-coded Urgency (Strict) */
+.inventory-item.expiry-red {
+  border-left-color: var(--danger);
+}
+
+.inventory-item.expiry-red .item-brief-expiry {
+  color: var(--danger) !important;
+  font-weight: 700;
+}
+
+.inventory-item.expiry-yellow {
+  border-left-color: var(--warning);
+}
+
+.inventory-item.expiry-yellow .item-brief-expiry {
+  color: var(--warning) !important;
+  font-weight: 600;
+}
+
+.inventory-item.expiry-green {
+  border-left-color: var(--secondary);
+}
+
+.inventory-item.expiry-green .item-brief-expiry {
+  color: var(--secondary) !important;
+  font-weight: 600;
+}
+
+/* Card Content Structure */
+.item-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.item-name {
+  font-weight: 700;
+  font-size: 1.1rem;
+  color: var(--text-main);
+}
+
+.item-brief-expiry {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+/* Collapsible Details */
+.item-details-container {
+  max-height: 0;
+  opacity: 0;
+  overflow: hidden;
+  transition: max-height 0.4s ease, opacity 0.3s ease;
+}
+
+.inventory-item.expanded .item-details-container {
+  max-height: 300px;
+  /* Large enough to fit content */
+  opacity: 1;
+  margin-top: 1rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border);
+}
+
+.detail-row {
+  margin-bottom: 0.5rem;
+  font-size: 0.9rem;
+  color: var(--text-main);
+  display: flex;
+  justify-content: space-between;
+}
+
+/* Controls (inside expanded) */
+.item-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 1rem;
+}
+
+.qty-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: #f3f4f6;
+  padding: 0.25rem;
+  border-radius: var(--radius-md);
+}
+
+.qty-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 4px;
+  border: none;
+  background: var(--primary);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 1.2rem;
+}
+
+.qty-val {
+  font-weight: 600;
+  min-width: 2rem;
+  text-align: center;
+}
+
+.action-icons {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.icon-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-muted);
+  transition: color 0.2s;
+}
+
+.icon-btn:hover {
+  color: var(--primary);
+}
+
+.icon-btn.delete:hover {
+  color: var(--danger);
+}
+
+
+/* FAB Bottom Right User Menu */
+.fab-container {
+  position: fixed;
+  bottom: 5rem;
+  /* Raised to make room for logout */
+  right: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  /* Changed from column-reverse to column so menu is ABOVE button */
+  align-items: center;
+  gap: 0.5rem;
+  z-index: 100;
+}
+
+.fab-main-user {
+  width: 3.5rem;
+  height: 3.5rem;
+  border-radius: 50%;
+  background: var(--primary);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--shadow-lg);
+  cursor: pointer;
+  transition: transform 0.2s;
+  border: 2px solid white;
+}
+
+.fab-main-user:active {
+  transform: scale(0.95);
+}
+
+.fab-sub-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  transform-origin: bottom center;
+}
+
+.fab-sub-container.hidden {
+  opacity: 0;
+  transform: translateY(20px) scale(0.8);
+  pointer-events: none;
+  display: none;
+  /* Force hide to prevent layout issues */
+}
+
+.fab-sub-item {
+  width: 3rem;
+  height: 3rem;
+  border-radius: 50%;
+  background: white;
+  color: var(--primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--shadow-md);
+  cursor: pointer;
+  transition: transform 0.2s;
+  border: 1px solid var(--border);
+}
+
+.fab-sub-item:hover {
+  transform: scale(1.1);
+}
+
+#menu-viz {
+  color: var(--secondary);
+}
+
+#menu-ai {
+  color: var(--primary);
+}
+
+/* Standalone Logout FAB */
+/* FAB Bottom Right User Menu */
+/* Main User FAB - stays at a fixed position, slightly higher to allow Logout below it */
+.fab-container {
+  position: fixed;
+  bottom: 5rem;
+  /* Raised to make room for logout */
+  right: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  z-index: 100;
+}
+
+/* ... existing fab-main-user, fab-sub-container ... */
+
+/* Standalone Logout FAB - positioned BELOW the User FAB */
+.fab-logout {
+  position: fixed;
+  bottom: 1.5rem;
+  /* At the bottom */
+  right: 1.5rem;
+  width: 3rem;
+  height: 3rem;
+  border-radius: 50%;
+  background: white;
+  color: var(--danger);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--shadow-md);
+  cursor: pointer;
+  border: 1px solid var(--border);
+  z-index: 90;
+  transition: transform 0.2s;
+}
+
+
+/* Alert Banner */
+.alert-banner {
+  background: #FEF3C7;
+  /* Yellow-100 */
+  border-left: 4px solid #F59E0B;
+  /* Yellow-500 */
+  color: #92400E;
+  /* Yellow-800 */
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius-md);
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  font-weight: 600;
+  animation: slideDown 0.3s ease-out;
+}
+
+.alert-banner.hidden {
+  display: none;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Toast for Undo */
+.undo-toast {
+  position: fixed;
+  bottom: 5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #333;
+  color: white;
+  padding: 0.75rem 1.5rem;
+  border-radius: 2rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  z-index: 200;
+  animation: slideUp 0.3s ease-out;
+}
+
+.undo-toast button {
+  background: none;
+  border: none;
+  color: #818cf8;
+  font-weight: bold;
+  cursor: pointer;
+  text-transform: uppercase;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
+/* Add Product Grid */
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+/* Modals */
+.modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 0.3s;
+}
+
+.modal.hidden {
+  display: none !important;
+}
+
+@media (min-width: 640px) {
+  .container {
+    padding-top: 2rem;
+  }
+}
+
+/* Visualization Section specific styles */
+#visualization-section {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  /* Full screen */
+  background: var(--background);
+  z-index: 50;
+  padding: 1rem;
+  padding-top: 5rem;
+  padding-bottom: 5rem;
+  /* Space for bottom scroll */
+  overflow-y: auto;
+  /* Enable internal scrolling */
+  transition: transform 0.3s ease-in-out;
+}
+
+#visualization-section.hidden {
+  display: block !important;
+  /* Override .hidden display:none to allow transform */
+  transform: translateX(100%);
+  pointer-events: none;
+}
+
+#visualization-section:not(.hidden) {
+  transform: translateX(0);
+}
+
+@media (min-width: 600px) {
+  #visualization-section {
+    position: fixed;
+    max-width: 600px;
+    left: 50%;
+    transform: translateX(-50%);
+    box-shadow: var(--shadow-lg);
+    border-left: 1px solid var(--border);
+    border-right: 1px solid var(--border);
+  }
+
+  #visualization-section.hidden {
+    transform: translateX(100%);
+    /* Slide out to right, or could use clip-path */
+    /* Adjusting for centered container: simple slide out might look weird if not handled carefully.
+       Let's use simple display toggling for desktop or keep absolute positioning within container?
+       Actually, extending .container logic is better.
+    */
+    display: none !important;
+    /* Simple hide for now to avoid complex transforms on desktop */
+  }
+
+  #visualization-section:not(.hidden) {
+    display: block !important;
+    transform: translateX(-50%);
+  }
+}
+
+/* AI Dashboard Specifics */
+#ai-dashboard-section {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: var(--background);
+  z-index: 60;
+  /* Higher than viz */
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.3s ease-in-out;
+}
+
+#ai-dashboard-section.hidden {
+  display: block;
+  /* For transform */
+  transform: translateX(100%);
+  pointer-events: none;
+}
+
+#ai-dashboard-section:not(.hidden) {
+  transform: translateX(0);
+}
+
+.inventory-chips-container {
+  padding: 0 1rem 0.5rem 1rem;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+
+.chips-scroll {
+  display: flex;
+  gap: 0.5rem;
+  overflow-x: auto;
+  padding-bottom: 0.5rem;
+  scrollbar-width: none;
+  /* Firefox */
+}
+
+.chips-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.chip {
+  background: #EEF2FF;
+  color: var(--primary);
+  padding: 0.25rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  white-space: nowrap;
+  border: 1px solid #C7D2FE;
+}
+
+.chat-container {
+  flex: 1;
+  padding: 1rem;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding-bottom: 5rem;
+  /* Space for input */
+}
+
+.chat-bubble {
+  max-width: 80%;
+  padding: 0.75rem 1rem;
+  border-radius: 1rem;
+  font-size: 0.95rem;
+  line-height: 1.4;
+  position: relative;
+  word-wrap: break-word;
+}
+
+.user-bubble {
+  align-self: flex-end;
+  background: var(--primary);
+  color: white;
+  border-bottom-right-radius: 0.25rem;
+}
+
+.ai-bubble {
+  align-self: flex-start;
+  background: white;
+  color: var(--text-main);
+  border: 1px solid var(--border);
+  border-bottom-left-radius: 0.25rem;
+  box-shadow: var(--shadow-sm);
+}
+
+.ai-input-area {
+  position: fixed;
+  /* Fixed at bottom of dashboard */
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  padding: 1rem;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  z-index: 61;
+}
+
+/* AI Loading Animation */
+.typing-indicator span {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  background-color: var(--text-muted);
+  border-radius: 50%;
+  animation: typing 1.4s infinite ease-in-out both;
+  margin: 0 2px;
+}
+
+.typing-indicator span:nth-child(1) {
+  animation-delay: -0.32s;
+}
+
+.typing-indicator span:nth-child(2) {
+  animation-delay: -0.16s;
+}
+
+@keyframes typing {
+
+  0%,
+  80%,
+  100% {
+    transform: scale(0);
+  }
+
+  40% {
+    transform: scale(1);
+  }
+}
+
+@media (min-width: 600px) {
+
+  #ai-dashboard-section,
+  .ai-input-area {
+    max-width: 600px;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+
+  #ai-dashboard-section.hidden {
+    transform: translateX(150%);
+    /* Further out to ensure hidden */
+  }
+
+  #ai-dashboard-section:not(.hidden) {
+    transform: translateX(-50%);
+  }
+}
+
+/* --- Language Dropdown Fixed Styles --- */
+.hidden {
+  display: none !important;
+}
+
+.lang-dropdown {
+  position: absolute;
+  top: 120%;
+  right: 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  z-index: 9999;
+  min-width: 160px;
+  overflow: hidden;
+}
+
+.lang-dropdown .lang-option {
+  padding: 10px 16px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  color: var(--text-main);
+  transition: background 0.2s;
+}
+
+.lang-dropdown .lang-option:hover {
+  background: var(--background);
+}
