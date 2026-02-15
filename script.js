@@ -902,7 +902,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       // 3. Call Backend
       // URL based on local env or production. For now assuming localhost:3000 as per plan
       // In real deploy, this URL should be dynamic
-      const response = await fetch('http://localhost:3000/api/chat', {
+      const response = await fetch("https://smart-household-assistant-back.onrender.com/api/chat", {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -1001,3 +1001,4 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
 });
+
