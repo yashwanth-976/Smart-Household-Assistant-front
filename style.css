@@ -218,22 +218,8 @@ select:focus {
   cursor: pointer;
 }
 
-/* Language Selector */
-.lang-selector {
-  position: absolute;
-  top: 1rem;
-  right: 1rem;
-}
 
-.lang-selector select {
-  padding: 0.25rem 0.5rem;
-  font-size: 0.875rem;
-  border-radius: var(--radius-md);
-  background: transparent;
-  border: none;
-  color: var(--text-muted);
-  cursor: pointer;
-}
+
 
 /* Authentication Page Specifics */
 .auth-container {
@@ -540,7 +526,6 @@ select:focus {
 .fab-container {
   position: fixed;
   bottom: 5rem;
-  /* Raised to make room for logout */
   right: 1.5rem;
   display: flex;
   flex-direction: column;
@@ -549,13 +534,9 @@ select:focus {
   z-index: 100;
 }
 
-/* ... existing fab-main-user, fab-sub-container ... */
-
-/* Standalone Logout FAB - positioned BELOW the User FAB */
 .fab-logout {
   position: fixed;
   bottom: 1.5rem;
-  /* At the bottom */
   right: 1.5rem;
   width: 3rem;
   height: 3rem;
@@ -570,6 +551,10 @@ select:focus {
   border: 1px solid var(--border);
   z-index: 90;
   transition: transform 0.2s;
+}
+
+#expiry-notification-btn {
+  color: var(--warning);
 }
 
 
