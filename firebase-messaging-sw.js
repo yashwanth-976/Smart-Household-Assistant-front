@@ -13,16 +13,20 @@ firebase.initializeApp({
 
 const messaging = firebase.messaging();
 
-messaging.onBackgroundMessage((payload) => {
-    console.log('[firebase-messaging-sw.js] Received background message ', payload);
+console.log('[firebase-messaging-sw.js] Messaging initialized');
 
-    // Customize notification here
+messaging.onBackgroundMessage((payload) => {
+    console.log('[firebase-messaging-sw.js] Received background message: ', payload);
+
     const notificationTitle = payload.notification.title || 'Smart Household Assistant';
     const notificationOptions = {
         body: payload.notification.body,
         icon: '/android-launchericon-192-192.png',
-        badge: '/android-launchericon-192-192.png'
+        badge: '/android-launchericon-192-192.png',
+        tag: 'fcm-background-test',
+        renotify: true
     };
 
+    console.log('[firebase-messaging-sw.js] Showing notification:', notificationTitle);
     self.registration.showNotification(notificationTitle, notificationOptions);
 });
