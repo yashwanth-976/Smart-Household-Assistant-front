@@ -1,4 +1,6 @@
 document.addEventListener('DOMContentLoaded', async () => {
+
+
   // --- 0. Protocol Check ---
   if (window.location.protocol === 'file:') {
     alert('CRITICAL: App is running via file:// protocol.\n\nPlease use a local server (e.g., Live Server in VS Code) for features to work.');
@@ -11,6 +13,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const alertBanner = document.getElementById('alert-banner');
   const submitBtn = form ? form.querySelector('button[type="submit"]') : null;
   const exitBtn = document.getElementById('exit-app-btn');
+  const expiryNotificationBtn = document.getElementById('expiry-notification-btn');
 
   const userFabBtn = document.getElementById('user-fab-btn');
   const fabMenu = document.getElementById('fab-menu');
@@ -33,9 +36,18 @@ document.addEventListener('DOMContentLoaded', async () => {
     exitBtn.addEventListener('click', handleLogout);
   }
 
+  if (expiryNotificationBtn) {
+    expiryNotificationBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      triggerNativeExpiryNotifications();
+    });
+  }
+
   if (userFabBtn) {
     userFabBtn.addEventListener('click', toggleUserMenu);
   }
+
+
 
   // Close menu when clicking outside
   window.addEventListener('click', (e) => {
@@ -60,12 +72,14 @@ document.addEventListener('DOMContentLoaded', async () => {
   // --- Speech Recognition ---
   const micBtn = document.getElementById('mic-btn');
   const productNameInput = document.getElementById('product-name');
+  let recognition = null;
 
   if (micBtn && ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     const recognition = new SpeechRecognition();
     recognition.continuous = false;
     recognition.lang = 'en-US';
+
 
     micBtn.addEventListener('click', () => {
       micBtn.style.color = 'var(--danger)';
@@ -153,28 +167,15 @@ document.addEventListener('DOMContentLoaded', async () => {
       return;
     }
 
-    // Process & Filter Expired
     const validInventory = [];
-    const deletePromises = [];
-
     data.forEach(item => {
       const daysLeft = calculateDaysLeft(item.expiry_date);
-      if (daysLeft < 0) {
-        // Auto Delete Expired
-        console.log(`Auto-deleting expired item: ${item.name}`);
-        deletePromises.push(supabase.from('products').delete().eq('id', item.id));
-      } else {
-        validInventory.push({
-          ...item,
-          expiryDate: item.expiry_date,
-          daysLeft: daysLeft // Cache it
-        });
-      }
+      validInventory.push({
+        ...item,
+        expiryDate: item.expiry_date,
+        daysLeft: daysLeft // Cache it
+      });
     });
-
-    if (deletePromises.length > 0) {
-      Promise.all(deletePromises).then(() => console.log('Expired items cleaned up.'));
-    }
 
     inventory = validInventory;
     renderProducts();
@@ -304,6 +305,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       else if (days === 1) expiryLabel = 'Expires Tomorrow';
       else expiryLabel = `${days} days left`;
 
+
       const itemEl = document.createElement('div');
       itemEl.className = `inventory-item ${statusClass} ${isExpanded}`;
       itemEl.dataset.id = item.id;
@@ -321,6 +323,7 @@ document.addEventListener('DOMContentLoaded', async () => {
            <div class="detail-row"><span>Expiry Date</span><span>${item.expiryDate}</span></div>
            <div class="detail-row"><span>Price</span><span>₹${item.price.toFixed(2)}</span></div>
            <div class="item-actions">
+
               <div class="qty-controls">
                  <button class="qty-btn" type="button" data-action="decrement" data-id="${item.id}">-</button>
                  <span class="qty-val">${item.quantity} ${item.unit}</span>
@@ -403,7 +406,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const { error } = await supabase.from('products').delete().eq('id', id);
 
     if (error) {
-      alert('Delete failed: ' + error.message);
+      alert(tolgee.t('delete_failed') + ': ' + error.message);
     } else {
       if (editingId === id) {
         editingId = null;
@@ -629,9 +632,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     const categoryCosts = {};
 
     inventory.forEach(item => {
-      const quantity = parseFloat(item.quantity) || 0;
       const price = parseFloat(item.price) || 0;
-      const cost = price * quantity;
+      const cost = price; // Treat item.price as TOTAL price
 
       totalValue += cost;
       categoryCosts[item.category] = (categoryCosts[item.category] || 0) + cost;
@@ -734,7 +736,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       inventory.forEach(item => {
         const d = new Date(item.created_at);
         if (d.getFullYear() === today.getFullYear()) {
-          const cost = (parseFloat(item.price) || 0) * (parseFloat(item.quantity) || 0);
+          const cost = parseFloat(item.price) || 0;
           monthlyData[d.getMonth()] += cost;
         }
       });
@@ -753,7 +755,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         inventory.forEach(item => {
           const itemDate = new Date(item.created_at);
           if (itemDate.toDateString() === dateObj.toDateString()) {
-            dailyTotal += (parseFloat(item.price) || 0) * (parseFloat(item.quantity) || 0);
+            dailyTotal += parseFloat(item.price) || 0;
           }
         });
         return dailyTotal;
@@ -776,25 +778,78 @@ document.addEventListener('DOMContentLoaded', async () => {
   // --- FCM Logic (Auto PWA) ---
   // Request permission automatically on load if supported
   if ('Notification' in window) {
+    console.log('Notification permission status:', Notification.permission);
     if (Notification.permission === 'default') {
-      // Attempt to request if not denied
-      // Browsers usually block this if not user triggered, but PWA context might allow it or user asked it "On load".
-      // We'll wrap in a small timeout or try immediately.
       Notification.requestPermission().then(perm => {
+        console.log('Notification permission request result:', perm);
         if (perm === 'granted') initFCM();
       });
     } else if (Notification.permission === 'granted') {
       initFCM();
+    }
+  } else {
+    console.warn('Notifications not supported by this browser.');
+  }
+
+  async function sendTestNotification() {
+    console.log('Manual test notification requested');
+    if (!('Notification' in window)) {
+      alert('Notifications are not supported by this browser.');
+      return;
+    }
+
+    if (Notification.permission !== 'granted') {
+      const perm = await Notification.requestPermission();
+      console.log('Manual permission request result:', perm);
+      if (perm !== 'granted') {
+        alert('Notification permission denied. Please enable it in browser settings.');
+        return;
+      }
+    }
+
+    // Show local notification immediately for testing
+    if ('serviceWorker' in navigator) {
+      const reg = await navigator.serviceWorker.getRegistration();
+      if (reg) {
+        reg.showNotification("Test Notification", {
+          body: "Notifications are working correctly 🎉",
+          icon: './android-launchericon-192-192.png'
+        });
+        console.log('Test notification sent via Service Worker');
+      } else {
+        new Notification("Test Notification", {
+          body: "Notifications are working correctly 🎉",
+          icon: './android-launchericon-192-192.png'
+        });
+        console.log('Test notification sent via window.Notification (No SW)');
+      }
+    } else {
+      new Notification("Test Notification", {
+        body: "Notifications are working correctly 🎉",
+        icon: './android-launchericon-192-192.png'
+      });
+      console.log('Test notification sent via window.Notification');
     }
   }
 
   async function initFCM() {
     if (!window.messaging) return;
     try {
-      const currentToken = await window.getToken(window.messaging, {});
+      if ('serviceWorker' in navigator) {
+        const reg = await navigator.serviceWorker.getRegistration();
+        console.log('Service Worker registration status for FCM:', reg ? 'Found' : 'Not found');
+      }
+
+      const currentToken = await window.getToken(window.messaging, {
+        vapidKey: 'YOUR_VAPID_KEY_IF_NEEDED' // Usually not needed for simple tests if already configured
+      });
+
       if (currentToken) {
+        console.log('Generated FCM Token:', currentToken);
         localStorage.setItem('fcmToken', currentToken);
         saveTokenToSupabase(currentToken);
+      } else {
+        console.warn('No registration token available. Request permission to generate one.');
       }
       window.onMessage(window.messaging, (payload) => {
         const { title, body } = payload.notification;
@@ -902,7 +957,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       // 3. Call Backend
       // URL based on local env or production. For now assuming localhost:3000 as per plan
       // In real deploy, this URL should be dynamic
-      const response = await fetch("https://smart-household-assistant-back.onrender.com/chat", {
+      const response = await fetch("https://smart-household-assistant-back.onrender.com/api/chat", {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -1003,6 +1058,37 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   }
 
-});
+  async function triggerNativeExpiryNotifications() {
+    if (!('Notification' in window)) {
+      alert('Notifications are not supported by this browser.');
+      return;
+    }
 
+    if (Notification.permission !== 'granted') {
+      const perm = await Notification.requestPermission();
+      if (perm !== 'granted') return;
+    }
+
+    const items = inventory.filter(item => item.daysLeft <= 5);
+
+    items.forEach(item => {
+      const emoji = item.daysLeft <= 0 ? "⚠" : "⏰";
+      const statusText = item.daysLeft <= 0 ? "expires today" : `expires in ${item.daysLeft} days`;
+
+      const title = `${emoji} ${item.name} ${statusText}`;
+
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistration().then(reg => {
+          if (reg) {
+            reg.showNotification(title, { icon: './android-launchericon-192-192.png' });
+          } else {
+            new Notification(title);
+          }
+        });
+      } else {
+        new Notification(title);
+      }
+    });
+  }
+});
 
