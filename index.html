@@ -20,13 +20,15 @@
 
 
 
+
+
   <!-- Firebase -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
     import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-messaging.js";
 
     const firebaseConfig = {
-      apiKey: "PASTE_YOUR_API_KEY",
+      apiKey: "AIzaSyBqB_cOk2ESbtHxCYkQRh3rx4P6WHqDpiQ",
       authDomain: "smart-expiry-fcm.firebaseapp.com",
       projectId: "smart-expiry-fcm",
       storageBucket: "smart-expiry-fcm.firebasestorage.app",
@@ -80,7 +82,6 @@
           Household Assistant</h1>
         <p class="text-muted">Welcome, Guest</p>
       </div>
-
 
     </header>
 
@@ -167,7 +168,6 @@
       <div
         style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; margin-top: 0.5rem;">
         <h3>Your Inventory</h3>
-        <!-- Total Value Removed -->
       </div>
 
       <!-- List Items (Dynamic) -->
@@ -186,6 +186,11 @@
 
     <!-- User Floating Action Button (Bottom Right) -->
     <div class="fab-container">
+      <!-- Expiry Bell Button (Stacked atop) -->
+      <div class="fab-sub-item" id="expiry-notification-btn" title="Expiry Alerts">
+        <span class="material-icons-round">notifications</span>
+      </div>
+
       <!-- Sub Buttons (Hidden by default) -->
       <div class="fab-sub-container hidden" id="fab-menu">
         <div class="fab-sub-item" id="menu-ai" title="AI Assistant">
@@ -212,7 +217,6 @@
     </button>
 
 
-    <!-- Visualization Section (Initially Hidden) -->
     <section id="visualization-section" class="hidden">
       <div class="dashboard-header">
         <h2 style="margin:0;">Analytics</h2>
@@ -228,7 +232,8 @@
 
       <!-- Summary Card -->
       <div class="card" style="background: linear-gradient(135deg, var(--primary), var(--secondary)); color: white;">
-        <h3 style="color: white; opacity: 0.9; font-size: 1rem;">Total Inventory Value</h3>
+        <h3 style="color: white; opacity: 0.9; font-size: 1rem;">Total
+          Inventory Value</h3>
         <p id="total-inventory-value" style="font-size: 2rem; font-weight: 700; margin-top: 0.5rem;">₹0.00</p>
       </div>
 
