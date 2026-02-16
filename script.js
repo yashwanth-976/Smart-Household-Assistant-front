@@ -902,18 +902,21 @@ document.addEventListener('DOMContentLoaded', async () => {
       // 3. Call Backend
       // URL based on local env or production. For now assuming localhost:3000 as per plan
       // In real deploy, this URL should be dynamic
-      const response = await fetch("https://smart-household-assistant-back.onrender.com/api/chat", {
+      const response = await fetch("https://smart-household-assistant-back.onrender.com/chat", {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json'
+        },
         body: JSON.stringify({
           message: text,
-          inventory: inventory.map(i => ({ name: i.name, quantity: i.quantity, unit: i.unit })),
-          language: 'en' // Default language
+          inventory: inventory.map(i => ({
+            name: i.name,
+            quantity: i.quantity,
+            unit: i.unit
+          }))
         })
       });
-
       const data = await response.json();
-
       // 4. Remove Loading & Add AI Response
       removeChatBubble(loadingId);
       if (data.reply) {
@@ -1001,4 +1004,5 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
 });
+
 
