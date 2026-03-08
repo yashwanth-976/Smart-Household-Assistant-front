@@ -454,7 +454,8 @@ select:focus {
   /* Changed from column-reverse to column so menu is ABOVE button */
   align-items: center;
   gap: 0.5rem;
-  z-index: 100;
+  z-index: 2000;
+  /* Extremely high to stay above all pages */
 }
 
 .fab-main-user {
@@ -549,7 +550,8 @@ select:focus {
   box-shadow: var(--shadow-md);
   cursor: pointer;
   border: 1px solid var(--border);
-  z-index: 90;
+  z-index: 1500;
+  /* Slightly lower than main FAB but above pages */
   transition: transform 0.2s;
 }
 
@@ -814,18 +816,113 @@ select:focus {
   box-shadow: var(--shadow-sm);
 }
 
+/* AI Input Area Spacing */
 .ai-input-area {
   position: fixed;
   /* Fixed at bottom of dashboard */
   bottom: 0;
   left: 0;
   width: 100%;
+  display: flex;
   padding: 1rem;
   background: var(--surface);
   border-top: 1px solid var(--border);
-  display: flex;
+  position: relative;
+  z-index: 10;
+  padding-right: 5rem;
+  /* Ensure space for fixed logout/FAB icons */
   align-items: center;
-  z-index: 61;
+}
+
+/* Onboarding Tour Styles */
+.tour-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 10000;
+  /* Above everything */
+  display: flex;
+  visibility: visible;
+  opacity: 1;
+  transition: opacity 0.3s;
+}
+
+.tour-overlay.hidden {
+  display: none !important;
+}
+
+.tour-card {
+  position: absolute;
+  background: white;
+  border-radius: var(--radius-lg);
+  padding: 1.5rem;
+  width: 280px;
+  box-shadow: var(--shadow-xl);
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  animation: tourFadeIn 0.3s ease-out;
+}
+
+@keyframes tourFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.tour-content h3 {
+  font-size: 1.1rem;
+  margin-bottom: 0.5rem;
+  color: var(--primary);
+}
+
+.tour-content p {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+}
+
+.tour-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.tour-arrow {
+  position: absolute;
+  width: 15px;
+  height: 15px;
+  background: white;
+  transform: rotate(45deg);
+}
+
+/* Positioning helpers for tour */
+.tour-pos-bottom-right {
+  bottom: 8.5rem;
+  right: 1.5rem;
+}
+
+.tour-pos-bottom-right .tour-arrow {
+  bottom: -7px;
+  right: 20px;
+}
+
+.tour-pos-logout {
+  bottom: 5rem;
+  right: 1.5rem;
+}
+
+.tour-pos-logout .tour-arrow {
+  bottom: -7px;
+  right: 20px;
 }
 
 /* AI Loading Animation */
