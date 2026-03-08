@@ -14,6 +14,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const submitBtn = form ? form.querySelector('button[type="submit"]') : null;
   const exitBtn = document.getElementById('exit-app-btn');
   const expiryNotificationBtn = document.getElementById('expiry-notification-btn');
+  const inventoryFilter = document.getElementById('inventory-filter');
 
   const userFabBtn = document.getElementById('user-fab-btn');
   const fabMenu = document.getElementById('fab-menu');
@@ -141,10 +142,108 @@ document.addEventListener('DOMContentLoaded', async () => {
 
       // Initial Load
       await fetchProducts();
+
+      // Auto-Expiry & Periodic Checks
+      setInterval(fetchProducts, 1000 * 60 * 60); // Check every hour
+
+      if (inventoryFilter) {
+        inventoryFilter.addEventListener('change', () => {
+          renderProducts();
+        });
+      }
+
+      // Check for First-Time User Tour
+      setTimeout(initOnboardingTour, 1500);
     } else {
       // If no session, redirect to auth page
       window.location.href = 'auth.html';
       return; // Stop further execution
+    }
+  }
+
+  // --- Onboarding Tour Logic ---
+  function initOnboardingTour() {
+    if (localStorage.getItem('hasSeenIconTour')) return;
+
+    const tourOverlay = document.getElementById('onboarding-tour');
+    const tourTitle = document.getElementById('tour-title');
+    const tourDesc = document.getElementById('tour-description');
+    const tourNext = document.getElementById('tour-next');
+    const tourSkip = document.getElementById('tour-skip');
+    const tourCard = tourOverlay.querySelector('.tour-card');
+
+    if (!tourOverlay) return;
+
+    const steps = [
+      {
+        title: "User Profile",
+        desc: "Manage your account and settings here.",
+        target: "user-fab-btn",
+        posClass: "tour-pos-bottom-right"
+      },
+      {
+        title: "AI Assistant",
+        desc: "Ask Chef AI for recipe ideas and cooking tips!",
+        target: "menu-ai",
+        posClass: "tour-pos-bottom-right",
+        action: () => { toggleUserMenu(); } // Open fab menu to see icons
+      },
+      {
+        title: "Analytics",
+        desc: "Track your spending and inventory habits.",
+        target: "menu-viz",
+        posClass: "tour-pos-bottom-right"
+      },
+      {
+        title: "Notifications",
+        desc: "Check for expiring items manually anytime.",
+        target: "expiry-notification-btn",
+        posClass: "tour-pos-bottom-right"
+      },
+      {
+        title: "Exit App",
+        desc: "Logout securely when you're done.",
+        target: "exit-app-btn",
+        posClass: "tour-pos-logout"
+      }
+    ];
+
+    let currentStep = 0;
+
+    const showStep = (index) => {
+      const step = steps[index];
+      tourTitle.textContent = step.title;
+      tourDesc.textContent = step.desc;
+
+      tourCard.className = 'tour-card ' + step.posClass;
+
+      if (step.action) step.action();
+
+      if (index === steps.length - 1) {
+        tourNext.textContent = 'Finish';
+      } else {
+        tourNext.textContent = 'Next';
+      }
+    };
+
+    tourOverlay.classList.remove('hidden');
+    showStep(currentStep);
+
+    tourNext.onclick = () => {
+      currentStep++;
+      if (currentStep < steps.length) {
+        showStep(currentStep);
+      } else {
+        closeTour();
+      }
+    };
+
+    tourSkip.onclick = closeTour;
+
+    function closeTour() {
+      tourOverlay.classList.add('hidden');
+      localStorage.setItem('hasSeenIconTour', 'true');
+      if (!fabMenu.classList.contains('hidden')) fabMenu.classList.add('hidden');
     }
   }
 
@@ -153,32 +252,140 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 
   async function fetchProducts() {
-    // Safety check if currentUser is not set (e.g. Supabase failed)
     if (!currentUser) return;
 
-    const { data, error } = await supabase
+    // 1. Fetch Active Products
+    const { data: activeData, error: activeError } = await supabase
       .from('products')
       .select('*')
       .eq('user_id', currentUser.id)
       .order('expiry_date', { ascending: true });
 
-    if (error) {
-      console.error('Error fetching products:', error);
+    if (activeError) {
+      console.error('Error fetching products:', activeError);
       return;
     }
 
-    const validInventory = [];
-    data.forEach(item => {
+    // 2. Fetch Expired/Archived Products (for Analytics & Preservation)
+    const { data: expiredData, error: expiredError } = await supabase
+      .from('expired_products')
+      .select('*')
+      .eq('user_id', currentUser.id);
+
+    // Note: If expired_products table doesn't exist, this might fail, we handle gracefully
+    const combinedData = [...(activeData || [])];
+    const archivedItems = expiredData || [];
+
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+
+    const productsToMove = [];
+    const updatedInventory = [];
+
+    // Process Active Products
+    combinedData.forEach(item => {
       const daysLeft = calculateDaysLeft(item.expiry_date);
-      validInventory.push({
+
+      if (daysLeft < 0) {
+        // Product is expired, mark for move
+        productsToMove.push(item);
+      } else {
+        updatedInventory.push({
+          ...item,
+          expiryDate: item.expiry_date,
+          daysLeft: daysLeft,
+          status: 'active'
+        });
+      }
+    });
+
+    // Handle Auto-Removal & Preservation
+    if (productsToMove.length > 0) {
+      for (const item of productsToMove) {
+        try {
+          // Move to expired_products
+          await supabase.from('expired_products').insert([{
+            ...item,
+            archived_at: new Date().toISOString()
+          }]);
+          // Delete from active
+          await supabase.from('products').delete().eq('id', item.id);
+
+          archivedItems.push({
+            ...item,
+            expiryDate: item.expiry_date,
+            daysLeft: calculateDaysLeft(item.expiry_date),
+            status: 'expired'
+          });
+        } catch (e) {
+          console.error("Failed to move expired product:", item.name, e);
+        }
+      }
+    }
+
+    // Add archived items to the local state for "All" or "Expired" views
+    archivedItems.forEach(item => {
+      updatedInventory.push({
         ...item,
         expiryDate: item.expiry_date,
-        daysLeft: daysLeft // Cache it
+        daysLeft: calculateDaysLeft(item.expiry_date),
+        status: 'expired'
       });
     });
 
-    inventory = validInventory;
+    inventory = updatedInventory;
     renderProducts();
+    autoTriggerNotifications(); // Check for notifications after fetch
+  }
+
+  function autoTriggerNotifications() {
+    if (!('Notification' in window) || Notification.permission !== 'granted') return;
+
+    const notifiedData = JSON.parse(localStorage.getItem('notified_products') || '{}');
+    let hasNew = false;
+
+    inventory.forEach(item => {
+      // Logic: Expired (status: 'expired') OR about to expire (daysLeft <= 2)
+      // Only notify for items that are either active or newly expired
+      const isUrgent = (item.status === 'active' && item.daysLeft <= 2) || (item.status === 'expired');
+
+      if (isUrgent) {
+        const lastNotifiedDate = notifiedData[item.id];
+
+        // Notify only if not notified for this specific expiry date yet
+        if (lastNotifiedDate !== item.expiryDate) {
+          triggerSingleNotification(item);
+          notifiedData[item.id] = item.expiryDate;
+          hasNew = true;
+        }
+      }
+    });
+
+    if (hasNew) {
+      localStorage.setItem('notified_products', JSON.stringify(notifiedData));
+    }
+  }
+
+  function triggerSingleNotification(item) {
+    const emoji = item.daysLeft <= 0 ? "⚠" : "⏰";
+    const statusText = item.daysLeft <= 0 ? "expires today" : `expires in ${item.daysLeft} days`;
+    const title = `${emoji} ${item.name} ${statusText}`;
+
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistration().then(reg => {
+        if (reg) {
+          reg.showNotification(title, {
+            body: `Check your inventory!`,
+            icon: './android-launchericon-192-192.png',
+            tag: `expiry-${item.id}` // Avoid duplicates in the notification shade
+          });
+        } else {
+          new Notification(title);
+        }
+      });
+    } else {
+      new Notification(title);
+    }
   }
 
   function setupModal(btn, modal, closeBtn, menu, openCallback) {
@@ -282,32 +489,45 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (!listContainer) return;
     listContainer.innerHTML = '';
 
-    inventory.sort((a, b) => a.daysLeft - b.daysLeft);
+    const filterVal = inventoryFilter ? inventoryFilter.value : 'present';
 
-    if (inventory.length === 0) {
-      listContainer.innerHTML = '<p class="text-center text-muted" style="margin-top: 2rem;">No items yet. Add one!</p>';
+    let filteredInventory = inventory;
+    if (filterVal === 'present') {
+      filteredInventory = inventory.filter(i => i.status === 'active' && i.daysLeft >= 0);
+    } else if (filterVal === 'expired') {
+      filteredInventory = inventory.filter(i => i.status === 'expired' || i.daysLeft < 0);
+    }
+
+    filteredInventory.sort((a, b) => a.daysLeft - b.daysLeft);
+
+    if (filteredInventory.length === 0) {
+      const msg = filterVal === 'expired' ? 'No expired items found.' : 'No items yet. Add one!';
+      listContainer.innerHTML = `<p class="text-center text-muted" style="margin-top: 2rem;">${msg}</p>`;
       if (alertBanner) alertBanner.classList.add('hidden');
       return;
     }
 
-    let expiringSoonCount = 0; // items <= 5 days
-
+    let expiringSoonCount = 0; // items <= 5 days (only count active ones)
     inventory.forEach(item => {
-      const days = item.daysLeft;
-      if (days <= 5) expiringSoonCount++;
+      if (item.status === 'active' && item.daysLeft <= 5 && item.daysLeft >= 0) {
+        expiringSoonCount++;
+      }
+    });
 
-      const statusClass = getStatusClass(days);
+    filteredInventory.forEach(item => {
+      const days = item.daysLeft;
+      const statusClass = item.status === 'expired' || days < 0 ? 'expiry-red' : getStatusClass(days);
       const isExpanded = expandedItems.has(item.id) ? 'expanded' : '';
 
       let expiryLabel;
-      // "Today" (0) and "Tomorrow" (1) labels
-      if (days === 0) expiryLabel = 'Expires Today';
+      if (days < 0) expiryLabel = `Expired ${Math.abs(days)} days ago`;
+      else if (days === 0) expiryLabel = 'Expires Today';
       else if (days === 1) expiryLabel = 'Expires Tomorrow';
       else expiryLabel = `${days} days left`;
 
-
       const itemEl = document.createElement('div');
       itemEl.className = `inventory-item ${statusClass} ${isExpanded}`;
+      if (item.status === 'expired') itemEl.style.opacity = '0.8';
       itemEl.dataset.id = item.id;
 
       // Swipe Handler
@@ -315,7 +535,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
       itemEl.innerHTML = `
         <div class="item-header">
-           <div class="item-name">${item.name}</div>
+           <div class="item-name">${item.name} ${item.status === 'expired' ? '<span style="font-size:0.7rem; background:rgba(0,0,0,0.1); padding:2px 6px; border-radius:4px; margin-left:4px;">EXPIRED</span>' : ''}</div>
            <div class="item-brief-expiry">${expiryLabel}</div>
         </div>
         <div class="item-details-container">
@@ -325,12 +545,12 @@ document.addEventListener('DOMContentLoaded', async () => {
            <div class="item-actions">
 
               <div class="qty-controls">
-                 <button class="qty-btn" type="button" data-action="decrement" data-id="${item.id}">-</button>
+                 <button class="qty-btn" type="button" data-action="decrement" data-id="${item.id}" ${item.status === 'expired' ? 'disabled' : ''}>-</button>
                  <span class="qty-val">${item.quantity} ${item.unit}</span>
-                 <button class="qty-btn" type="button" data-action="increment" data-id="${item.id}">+</button>
+                 <button class="qty-btn" type="button" data-action="increment" data-id="${item.id}" ${item.status === 'expired' ? 'disabled' : ''}>+</button>
               </div>
               <div class="action-icons">
-                 <button class="icon-btn" type="button" data-action="edit" data-id="${item.id}" title="Edit">
+                 <button class="icon-btn" type="button" data-action="edit" data-id="${item.id}" title="Edit" ${item.status === 'expired' ? 'style="display:none"' : ''}>
                    <span class="material-icons-round">edit</span>
                  </button>
                  <button class="icon-btn delete" type="button" data-action="delete" data-id="${item.id}" title="Delete">
@@ -403,7 +623,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   async function deleteProduct(id, skipConfirm = false) {
     if (!skipConfirm && !confirm('Are you sure you want to delete this item?')) return;
 
+    // Try deleting from active table
     const { error } = await supabase.from('products').delete().eq('id', id);
+
+    // Also try deleting from expired_products table to ensure it's removed from analytics if requested
+    await supabase.from('expired_products').delete().eq('id', id);
 
     if (error) {
       alert(tolgee.t('delete_failed') + ': ' + error.message);
@@ -446,9 +670,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   // --- Swipe Gesture Logic ---
 
   function setupSwipeGestures() {
-    // 1. Dashboard Swipe Right (General)
+    // 1. Global Swipe Back for AI/Analytics (Mobile Only)
     let startX = 0;
     let startY = 0;
+
+    const isMobile = () => window.innerWidth < 600;
 
     document.addEventListener('touchstart', e => {
       startX = e.touches[0].clientX;
@@ -461,15 +687,28 @@ document.addEventListener('DOMContentLoaded', async () => {
       const diffX = endX - startX;
       const diffY = endY - startY;
 
-      // Check horizontal swipe dominant
-      if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 100) {
+      if (!isMobile()) return;
 
-        // Swipe Right -> Go to Add Product (Top) OR Back from Viz
-        if (diffX > 0) {
+      // Check horizontal swipe dominant
+      if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 80) {
+
+        // Swipe Left (Negative X) -> Back to Inventory from AI/Viz
+        if (diffX < 0) {
           const vizSection = document.getElementById('visualization-section');
+          const aiSection = document.getElementById('ai-dashboard-section');
+
           if (vizSection && !vizSection.classList.contains('hidden')) {
-            vizSection.classList.add('hidden'); // Swipe Back
-          } else {
+            vizSection.classList.add('hidden');
+          } else if (aiSection && !aiSection.classList.contains('hidden')) {
+            aiSection.classList.add('hidden');
+          }
+        }
+
+        // Swipe Right (Positive X) -> Go to Add Product (Top)
+        if (diffX > 80 && diffX > 0) {
+          const vizSection = document.getElementById('visualization-section');
+          const aiSection = document.getElementById('ai-dashboard-section');
+          if (vizSection.classList.contains('hidden') && aiSection.classList.contains('hidden')) {
             window.scrollTo({ top: 0, behavior: 'smooth' });
             const nameInput = document.getElementById('product-name');
             if (nameInput) setTimeout(() => nameInput.focus(), 300);
@@ -517,13 +756,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
       element.style.transform = '';
 
-      // Threshold for Delete Trigger
-      if (xDiff > 100) {
-        // Trigger Delete (with confirmation as per requirement)
-        // User requirement: "Confirm before delete"
-        if (confirm('Delete this item?')) {
-          deleteProduct(id, true); // true = skip second confirm, we just asked
-        }
+      // Threshold for Delete Trigger (Mobile Only as per request)
+      if (xDiff > 80 && window.innerWidth < 600) {
+        // Trigger Delete
+        deleteProduct(id);
       }
 
       xDown = null;
@@ -764,7 +1000,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     if (trendChart) trendChart.destroy();
 
-    // ... trend chart config ...
     trendChart = new Chart(ctx, {
       data: {
         labels: labels, datasets: [{
