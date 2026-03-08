@@ -257,6 +257,18 @@
         </div>
       </div>
 
+      <!-- Inventory Filter (Moved here) -->
+      <div class="card" style="margin-bottom: 1rem; padding: 1rem;">
+        <label for="inventory-filter"
+          style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.5rem; display: block;">Filter
+          Products</label>
+        <select id="inventory-filter" style="width: 100%; padding: 0.75rem;">
+          <option value="present">Present Products</option>
+          <option value="expired">Expired Products</option>
+          <option value="all">All Products</option>
+        </select>
+      </div>
+
       <!-- Charts -->
       <div class="card">
         <h3>Category Breakdown</h3>
@@ -311,6 +323,7 @@
 
   <!-- AI Dashboard Section (New) -->
   <section id="ai-dashboard-section" class="hidden">
+    <!-- ... existing AI section content ... -->
     <div class="dashboard-header">
       <h2 style="margin:0;">Chef AI 🍳</h2>
       <button id="close-ai-btn" class="btn-ghost" style="font-size: 1.5rem;">&times;</button>
@@ -347,6 +360,21 @@
       </button>
     </div>
   </section>
+
+  <!-- Onboarding Tour Tooltip -->
+  <div id="onboarding-tour" class="tour-overlay hidden">
+    <div class="tour-card">
+      <div class="tour-content">
+        <h3 id="tour-title">Welcome!</h3>
+        <p id="tour-description">Let's take a quick look at these icons.</p>
+      </div>
+      <div class="tour-actions">
+        <button id="tour-skip" class="btn-ghost">Skip</button>
+        <button id="tour-next" class="btn btn-primary" style="width: auto; padding: 0.5rem 1.5rem;">Next</button>
+      </div>
+      <div class="tour-arrow"></div>
+    </div>
+  </div>
 
   <script src="script.js"></script>
 </body>
